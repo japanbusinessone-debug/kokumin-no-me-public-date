@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - 'collect.py'
+      - 'burden.py'
+      - 'requirements.txt'
       - 'tests/**'
       - '.github/workflows/update.yml'
   workflow_dispatch:
@@ -20,6 +22,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
+      - name: Install the PDF text reader
+        run: python3 -m pip install --disable-pip-version-check -r requirements.txt
       - name: Restore collected SQLite history on first run
         run: |
           if [ ! -f public/records.sqlite ] && [ -f seed.sqlite.gz ]; then
@@ -27,13 +31,15 @@ jobs:
           fi
       - name: Collect bounded official metadata
         run: python3 collect.py
+      - name: Check MOF national burden release
+        run: python3 burden.py
       - name: Verify SQLite and public output
         run: python3 -m unittest discover -s tests -v
       - name: Preserve data and history
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add public/data.json public/records.sqlite
+          git add public/data.json public/records.sqlite public/burden.json public/burden.sqlite public/burden-status.json
           if ! git diff --cached --quiet; then
             git commit -m 'Update official public records'
             git push
@@ -41,3 +47,4 @@ jobs:
       - name: Report source failures after preserving the last valid data
         run: |
           python3 -c "import json; d=json.load(open('public/data.json')); failed=[s['id'] for s in d['sources'] if s['status']=='failed']; print('Failed sources:', failed); raise SystemExit(bool(failed))"
+          python3 -c "import json; d=json.load(open('public/burden-status.json')); print(d); raise SystemExit(d['status']!='succeeded')"

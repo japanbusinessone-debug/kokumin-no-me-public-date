@@ -27,3 +27,9 @@ Python 3標準ライブラリのみ。`python collect.py`、`python -m unittest 
 
 JSONの各レコードに出典・確認日時、統計には年・地域・単位・速報/確報・注記を保持します。標準e-StatのappIdは未発行・未設定です。
 
+
+## 国民負担率
+
+`python burden.py`は財務省の最新公表ページを検出し、公式PDFの年度別系列を構造化します。`pip install -r requirements.txt`でpypdfを準備してください。公表日・対象年度・実績/実績見込み/見通し、国民所得を分母にする割合、原表URL・PDFハッシュを保存します。`public/burden.sqlite`に改訂履歴、`public/burden.json`に表示用データ、`public/burden-status.json`に取得成否を保存します。既存の毎日6:17/18:17 JSTの更新で併せて確認します。失敗時は前回の有効データを維持してエラーを記録します。
+
+出典: https://www.mof.go.jp/policy/budget/topics/futanritsu/index.htm 。利用条件: https://www.mof.go.jp/about_mof/notice/index.html 。公式表を加工した表示であり、財務省提供のサイトではありません。個人向け試算の税制ルールは、この国全体の系列とは分離してSites側で版管理・レビューします。
