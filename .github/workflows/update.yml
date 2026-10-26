@@ -1,0 +1,43 @@
+name: Update official public data
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'collect.py'
+      - 'tests/**'
+      - '.github/workflows/update.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '17 21,9 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: official-public-data
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Restore collected SQLite history on first run
+        run: |
+          if [ ! -f public/records.sqlite ] && [ -f seed.sqlite.gz ]; then
+            gzip -dc seed.sqlite.gz > public/records.sqlite
+          fi
+      - name: Collect bounded official metadata
+        run: python3 collect.py
+      - name: Verify SQLite and public output
+        run: python3 -m unittest discover -s tests -v
+      - name: Preserve data and history
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/data.json public/records.sqlite
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update official public records'
+            git push
+          fi
+      - name: Report source failures after preserving the last valid data
+        run: |
+          python3 -c "import json; d=json.load(open('public/data.json')); failed=[s['id'] for s in d['sources'] if s['status']=='failed']; print('Failed sources:', failed); raise SystemExit(bool(failed))"
